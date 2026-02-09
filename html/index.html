@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Serverless Feedback Form</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 16px;
+      line-height: 1.5;
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 16px;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 12px;
+      white-space: pre-wrap;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Contact</h1>
+
+  <form id="feedback-form">
+    <label>
+      Name
+      <input type="text" name="name" required />
+    </label>
+
+    <label>
+      Email
+      <input type="email" name="email" required />
+    </label>
+
+    <label>
+      Message
+      <textarea name="message" rows="4" required></textarea>
+    </label>
+
+    <button type="submit">Send</button>
+  </form>
+
+  <div id="status"></div>
+
+  <script>
+    const API_URL = "https://nacq9ozule.execute-api.us-east-1.amazonaws.com/feedback";
+
+    const form = document.getElementById("feedback-form");
+    const statusEl = document.getElementById("status");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      statusEl.textContent = "Sending...";
+
+      const formData = new FormData(form);
+      const payload = {
+        name: formData.get("name"),
+        email: formData.get("email"),
+        message: formData.get("message"),
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          statusEl.textContent = "Error: " + (data.error || res.statusText);
+          return;
+        }
+
+        statusEl.textContent = "Thank you! Your message was sent.\nID: " + data.id;
+        form.reset();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Network error sending message.";
+      }
+    });
+  </script>
+</body>
+</html>

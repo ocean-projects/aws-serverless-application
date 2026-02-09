@@ -1,0 +1,69 @@
+
+# Terraform
+
+## Local .terraform directories
+**/.terraform/*
+
+## .tfstate files
+*.tfstate
+*.tfstate.*
+
+## Crash log files
+crash.log
+crash.*.log
+
+## Sensitive variable files
+*.tfvars
+*.tfvars.json
+
+## Override files (local overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+## Lock info
+.terraform.tfstate.lock.info
+
+## Terraform CLI configuration
+.terraformrc
+terraform.rc
+
+
+
+# Lambda / Build Artifacts
+
+## ZIP files generated for Lambda packaging
+lambda/*.zip
+*.zip
+
+## Node modules (if you add dependencies later)
+node_modules/
+lambda/node_modules/
+
+# OS / Editor Files
+
+## macOS Finder metadata
+.DS_Store
+
+## VSCode settings
+.vscode/
+
+## JetBrains IDEs
+.idea/
+
+
+# Logs
+
+*.log
+
+
+# Images / Documentation
+
+!images/
+
+# Ignore PSD, raw design files, etc.
+*.psd
+*.ai
+*.xd
+
