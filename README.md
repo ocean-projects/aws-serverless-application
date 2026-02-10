@@ -24,11 +24,11 @@ The challenge is to design a system that meets these requirements while understa
 flowchart TD
     U[Users]
 
-    U --> APIGW[Amazon API Gateway]
-    APIGW --> L[AWS Lambda]
-    L --> DDB[Amazon DynamoDB]
+    U --> APIGW["Amazon API Gateway"]
+    APIGW --> L["AWS Lambda"]
+    L --> DDB["Amazon DynamoDB"]
 
-    U --> S3[Amazon S3 (Static Assets)]
+    U --> S3["Amazon S3 - Static Assets"]
 ```
 
 ### Key Components
