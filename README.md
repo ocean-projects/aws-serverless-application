@@ -5,7 +5,6 @@ This project demonstrates a **fully serverless AWS web application** designed to
 
 This project intentionally focuses on **cloud-native serverless tradeoffs** and complements an infrastructure-managed AWS project built using EC2 and load balancers.
 
----
 
 ## Problem Statement
 Some applications require:
@@ -16,7 +15,6 @@ Some applications require:
 
 The challenge is to design a system that meets these requirements while understanding the **limitations and tradeoffs** introduced by fully managed abstractions.
 
----
 
 ## Architecture
 
@@ -30,7 +28,7 @@ flowchart TD
     APIGW --> L[AWS Lambda]
     L --> DDB[Amazon DynamoDB]
 
-    U --> S3[Amazon S3<br/>(Static Assets)]
+    U --> S3[Amazon S3 (Static Assets)]
 ```
 
 ### Key Components
