@@ -1,6 +1,7 @@
-# Project 4 — Serverless AWS Web Application
+# Serverless AWS Web Application
 
-## Overview
+**API Gateway + Lambda + DynamoDB + S3 (Fully Serverless Reference Architecture)**
+
 This project demonstrates a **fully serverless AWS web application** designed to scale automatically with minimal operational overhead. The architecture relies entirely on managed AWS services to handle routing, compute, persistence, and storage without managing servers or scaling policies.
 
 This project intentionally focuses on **cloud-native serverless tradeoffs** and complements an infrastructure-managed AWS project built using EC2 and load balancers.
@@ -103,13 +104,87 @@ Observability is provided through managed AWS tooling without custom monitoring 
 
 A separate AWS project explores these concerns using EC2 Auto Scaling and load balancers.
 
+## Observability
+- CloudWatch Logs for Lambda execution output
+- CloudWatch Metrics for Lambda errors/latency/invocations
+- API Gateway metrics for request volume and error rates
+
+
+## Repository Structure
+aws-severless-application
+├── html/              # Static frontend assets (served from S3)
+├── lambda/            # Lambda function code
+├── main.tf            # Terraform infrastructure
+├── variables.tf       # Terraform variables
+└── README.md
+
 
 ## What This Project Demonstrates
-- Cloud-native serverless application design
-- Effective use of managed AWS services
-- Understanding of serverless strengths and limitations
-- Ability to reason about architectural tradeoffs
+- Serverless application design using managed AWS services
+- Automatic scaling under variable traffic
+- Practical reasoning about tradeoffs (cold starts, limits, observability)
+- Terraform-based infrastructure provisioning (IaC)
 
+
+## Deployment
+
+
+### Requirements
+- Serverless application design using managed AWS services
+- Automatic scaling under variable traffic
+- Practical reasoning about tradeoffs (cold starts, limits, observability)
+- Terraform-based infrastructure provisioning (IaC)
+
+Verify:
+```bash
+aws --version
+terraform -version
+```
+
+### Deploy
+
+Navigate to folder, initialize, and deploy project
+```bash
+git clone https://github.com/ocean-projects/aws-serverless-application.git
+cd aws-serverless-application
+terraform init
+terraform plan
+terraform apply
+```
+
+Confirm with yes when prompted.
+
+After apply, check Terraform outputs:
+
+```bash
+terraform output
+```
+
+### Test
+
+1) Test the API
+
+```bash
+curl https://<api_gateway_invoke_url>/health
+```
+
+(Adjust the path to whatever your Lambda/API exposes.)
+
+2) Test the website
+
+Open the S3/website URL from terraform output (or from the S3 static website hosting config).
+
+
+### Destroy
+
+```bash
+terraform destroy
+```
+
+Always destroy unused infrastructure to avoid AWS charges.
+
+
+Use the API endpoint from terraform output:
 
 ## Status
 **Feature-complete.**
