@@ -1,5 +1,7 @@
 # Serverless AWS Web Application
 
+![Terraform CI](https://github.com/ocean-projects/aws-serverless-application/actions/workflows/terraform-ci.yml/badge.svg)
+
 **API Gateway + Lambda + DynamoDB + S3 (Fully Serverless Reference Architecture)**
 
 This project demonstrates a **fully serverless AWS web application** designed to scale automatically with minimal operational overhead. The architecture relies entirely on managed AWS services to handle routing, compute, persistence, and storage without managing servers or scaling policies.
@@ -190,3 +192,5 @@ Use the API endpoint from terraform output:
 **Feature-complete.**
 
 Scope is intentionally frozen to preserve clarity and to serve as a comparison point against infrastructure-managed AWS architectures.
+
+
