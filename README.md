@@ -1,6 +1,6 @@
 # Serverless AWS Web Application
 
-![Terraform CI](https://github.com/ocean-projects/aws-serverless-application/actions/workflows/terraform-ci.yml/badge.svg)
+[![Terraform CI](https://github.com/ocean-projects/aws-serverless-application/actions/workflows/terraform-ci.yml/badge.svg)](https://github.com/ocean-projects/aws-serverless-application/actions/workflows/terraform-ci.yml)
 
 **API Gateway + Lambda + DynamoDB + S3 (Fully Serverless Reference Architecture)**
 
