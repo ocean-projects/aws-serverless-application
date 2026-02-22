@@ -2,22 +2,28 @@
 
 [![Terraform CI](https://github.com/ocean-projects/aws-serverless-application/actions/workflows/terraform-ci.yml/badge.svg)](https://github.com/ocean-projects/aws-serverless-application/actions/workflows/terraform-ci.yml)
 
-**API Gateway + Lambda + DynamoDB + S3 (Fully Serverless Reference Architecture)**
+**CloudFront + API Gateway + Lambda + DynamoDB + Private S3 (Fully Serverless Reference Architecture)**
 
-This project demonstrates a **fully serverless AWS web application** designed to scale automatically with minimal operational overhead. The architecture relies entirely on managed AWS services to handle routing, compute, persistence, and storage without managing servers or scaling policies.
+This project demonstrates a fully serverless AWS web application built entirely on managed services. The architecture is designed for automatic scaling, high availability, strong security posture, and minimal operational overhead.
 
-This project intentionally focuses on **cloud-native serverless tradeoffs** and complements an infrastructure-managed AWS project built using EC2 and load balancers.
+Static assets are delivered globally via Amazon CloudFront using Origin Access Control (OAC) to enforce private S3 access. Application logic is handled by Lambda and API Gateway, and data persistence is managed by DynamoDB.
 
+This project complements a separate infrastructure-managed AWS project built using EC2 and load balancers to contrast serverless and server-based architectures.
+
+---
 
 ## Problem Statement
+
 Some applications require:
-- Rapid scalability with unpredictable traffic
-- Minimal infrastructure management
-- High availability by default
-- Cost efficiency for low-to-medium workloads
 
-The challenge is to design a system that meets these requirements while understanding the **limitations and tradeoffs** introduced by fully managed abstractions.
+- Rapid scalability with unpredictable traffic  
+- Minimal infrastructure management  
+- High availability by default  
+- Cost efficiency for low-to-medium workloads  
 
+The challenge is designing a system that satisfies these constraints while understanding the tradeoffs introduced by fully managed abstractions.
+
+---
 
 ## Architecture
 
@@ -27,18 +33,99 @@ The challenge is to design a system that meets these requirements while understa
 flowchart TD
     U[Users]
 
-    U --> APIGW["Amazon API Gateway"]
+    U --> CF["Amazon CloudFront (CDN)"]
+    CF --> S3["Amazon S3 (Private Static Assets via OAC)"]
+
+    U --> APIGW["Amazon API Gateway (HTTP API)"]
     APIGW --> L["AWS Lambda"]
     L --> DDB["Amazon DynamoDB"]
-
-    U --> S3["Amazon S3 - Static Assets"]
 ```
 
 ### Key Components
+- **Amazon CloudFront** — Global CDN delivering static assets securely over HTTPS
+- **Origin Access Control (OAC)** — Restricts S3 access so only CloudFront can read objects
 - **API Gateway** — HTTP routing, throttling, and request handling
 - **AWS Lambda** — Stateless compute for application logic
 - **DynamoDB** — Fully managed NoSQL datastore with automatic scaling
 - **Amazon S3** — Durable object storage for static assets
+
+## Architecture & Deployment Screenshots
+
+### CloudFront Distribution (Private S3 via OAC)
+
+CloudFront serves the static frontend globally over HTTPS.  
+The S3 bucket remains private and is accessible only through Origin Access Control (OAC).
+
+![CloudFront Distribution](images/cloudfront-distribution.png)
+
+
+### CloudFront 200 Response (Live Endpoint)
+
+Terminal proof that the CDN is serving the application successfully over HTTPS.
+
+![CloudFront 200 Response](images/cloudfront-200-response.png)
+
+
+### Serverless Feedback Form (Frontend)
+
+Static frontend hosted on S3 and delivered via CloudFront.
+
+![Serverless Feedback Form](images/serverless-feedback-form.png)
+
+
+### API Gateway → Lambda Integration
+
+The `POST /feedback` route uses AWS_PROXY integration to invoke the `feedback-handler` Lambda function.
+
+![API Gateway Lambda Integration](images/api-gateway-lambda-integration.png)
+
+
+### API Validation (400 Response)
+
+Input validation enforced at the Lambda layer.  
+Invalid requests return structured 400 responses.
+
+![API Validation](images/api-validation-400.png)
+
+
+### Lambda Test (201 Created)
+
+Direct Lambda test invocation confirming:
+- Request parsing
+- Validation
+- DynamoDB persistence
+- 201 Created response
+
+![Lambda Test Success](images/lambda-test-success-201.png)
+
+
+### DynamoDB Persistence
+
+Successful submissions are stored in the `feedback` table using on-demand billing.
+
+*(If you add the DynamoDB screenshot, reference it here.)*
+
+
+### S3 Private Bucket Configuration
+
+Block Public Access enabled.  
+Bucket policy restricts read access to CloudFront distribution only.
+
+![S3 Private Bucket](images/s3-private-bucket.png)
+
+
+### S3 Bucket Contents
+
+Static assets (`index.html`, `error.html`) stored in private S3 bucket.
+
+![S3 Bucket Contents](images/s3-bucket-contents.png)
+
+
+### Terraform Deployment Outputs
+
+Infrastructure provisioned using Terraform.  
+Outputs confirm CloudFront and API Gateway endpoints.
+![Terraform Outputs](images/terraform-outputs.png)
 
 
 ## Design Decisions
@@ -67,6 +154,17 @@ DynamoDB was chosen to:
 
 Tradeoffs include reduced support for complex relational queries and joins, which are acceptable for this application’s access patterns.
 
+### Why CloudFront + Origin Access Control
+
+Instead of exposing an S3 static website endpoint publicly:
+
+- S3 remains fully private  
+- CloudFront is the only service allowed to access bucket objects  
+- All traffic is delivered via HTTPS  
+- Global edge caching reduces latency  
+
+This improves security posture while maintaining serverless simplicity.
+
 
 ## Failure Scenarios & Behavior
 
@@ -76,6 +174,9 @@ Tradeoffs include reduced support for complex relational queries and joins, whic
 | Traffic spike | Lambda and DynamoDB scale automatically |
 | AZ-level failure | Managed services remain available |
 | Individual request error | No impact on other users |
+| CloudFront edge failure | Requests route to nearest healthy edge |
+| Individual request error | No impact on other users |
+
 
 The system favors **availability and simplicity** over low-level infrastructure control.
 
@@ -84,6 +185,7 @@ The system favors **availability and simplicity** over low-level infrastructure 
 - **CloudWatch Logs** for Lambda execution output
 - **CloudWatch Metrics** for latency, errors, and invocation count
 - **API Gateway metrics** for request volume and error rates
+- **CloudFront metrics** for cache hit rate and edge performance
 
 Observability is provided through managed AWS tooling without custom monitoring infrastructure.
 
@@ -114,6 +216,7 @@ A separate AWS project explores these concerns using EC2 Auto Scaling and load b
 
 ## Repository Structure
 aws-severless-application
+├── images/            # Deployment images
 ├── html/              # Static frontend assets (served from S3)
 ├── lambda/            # Lambda function code
 ├── main.tf            # Terraform infrastructure
@@ -122,7 +225,9 @@ aws-severless-application
 
 
 ## What This Project Demonstrates
+- Secure static asset delivery using CloudFront + Origin Access Control
 - Serverless application design using managed AWS services
+- DynamoDB persistence with on-demand billing
 - Automatic scaling under variable traffic
 - Practical reasoning about tradeoffs (cold starts, limits, observability)
 - Terraform-based infrastructure provisioning (IaC)

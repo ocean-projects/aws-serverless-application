@@ -17,8 +17,9 @@ provider "aws" {
   region = "us-east-1"
 }
 
-
-# S3 static website bucket
+# =========================================================
+# S3 STATIC SITE (PRIVATE)
+# =========================================================
 
 resource "aws_s3_bucket" "static_site_bucket" {
   bucket        = "ocean-site-bucket-0983"
@@ -33,15 +34,24 @@ resource "aws_s3_bucket_public_access_block" "static_site_public_access_block" {
   bucket                  = aws_s3_bucket.static_site_bucket.id
   block_public_acls       = true
   ignore_public_acls      = true
-  block_public_policy     = false
-  restrict_public_buckets = false
+  block_public_policy     = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "static_site_bucket_versioning" {
+  bucket = aws_s3_bucket.static_site_bucket.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "static_site_bucket_lifecycle_config" {
   bucket = aws_s3_bucket.static_site_bucket.id
 
   rule {
-    id = "rule-1"
+    id     = "rule-1"
+    status = "Enabled"
 
     transition {
       days          = 30
@@ -56,46 +66,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "static_site_bucket_lifecycle_c
     expiration {
       days = 90
     }
-
-    status = "Enabled"
   }
-}
-
-resource "aws_s3_bucket_versioning" "static_site_bucket_versioning" {
-  bucket = aws_s3_bucket.static_site_bucket.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_website_configuration" "static_site" {
-  bucket = aws_s3_bucket.static_site_bucket.id
-
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "error.html"
-  }
-}
-
-resource "aws_s3_bucket_policy" "static_site_policy" {
-  bucket = aws_s3_bucket.static_site_bucket.id
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject",
-        Effect    = "Allow",
-        Principal = "*",
-        Action    = "s3:GetObject",
-        Resource  = "${aws_s3_bucket.static_site_bucket.arn}/*"
-      }
-    ]
-  })
 }
 
 resource "aws_s3_object" "index_html" {
@@ -112,8 +83,89 @@ resource "aws_s3_object" "error_html" {
   content_type = "text/html"
 }
 
+# =========================================================
+# CLOUDFRONT + ORIGIN ACCESS CONTROL
+# =========================================================
 
-# DynamoDB table
+resource "aws_cloudfront_origin_access_control" "oac" {
+  name                              = "static-site-oac"
+  description                       = "OAC for private S3 static site bucket"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_cloudfront_distribution" "static_site" {
+  enabled             = true
+  comment             = "Static site distribution (S3 private via OAC)"
+  default_root_object = "index.html"
+  price_class         = "PriceClass_100"
+
+  origin {
+    domain_name              = aws_s3_bucket.static_site_bucket.bucket_regional_domain_name
+    origin_id                = "s3-static-site-origin"
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "s3-static-site-origin"
+    viewer_protocol_policy = "redirect-to-https"
+
+    allowed_methods = ["GET", "HEAD"]
+    cached_methods  = ["GET", "HEAD"]
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+
+# Bucket policy allowing CloudFront ONLY
+
+data "aws_iam_policy_document" "static_site_bucket_policy" {
+  statement {
+    sid     = "AllowCloudFrontReadOnly"
+    effect  = "Allow"
+    actions = ["s3:GetObject"]
+
+    resources = [
+      "${aws_s3_bucket.static_site_bucket.arn}/*"
+    ]
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.static_site.arn]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "static_site_policy" {
+  bucket = aws_s3_bucket.static_site_bucket.id
+  policy = data.aws_iam_policy_document.static_site_bucket_policy.json
+}
+
+# =========================================================
+# DYNAMODB
+# =========================================================
 
 resource "aws_dynamodb_table" "feedback" {
   name         = "feedback"
@@ -130,23 +182,22 @@ resource "aws_dynamodb_table" "feedback" {
   }
 }
 
-
-# IAM role + policy for Lambda
+# =========================================================
+# IAM ROLE FOR LAMBDA
+# =========================================================
 
 resource "aws_iam_role" "lambda_exec" {
   name = "feedback-lambda-exec"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
       }
-    ]
+    }]
   })
 }
 
@@ -157,15 +208,11 @@ resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      # Allow writing to the feedback table
       {
-        Effect = "Allow"
-        Action = [
-          "dynamodb:PutItem"
-        ]
+        Effect   = "Allow"
+        Action   = ["dynamodb:PutItem"]
         Resource = aws_dynamodb_table.feedback.arn
       },
-      # Allow basic CloudWatch Logs
       {
         Effect = "Allow"
         Action = [
@@ -179,16 +226,15 @@ resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
   })
 }
 
-# -------------------------
-# Lambda function (Node.js)
-# -------------------------
+# =========================================================
+# LAMBDA
+# =========================================================
 
 data "archive_file" "lambda_feedback_zip" {
   type        = "zip"
   source_dir  = "${path.module}/lambda"
   output_path = "${path.module}/lambda/feedback.zip"
 }
-
 
 resource "aws_lambda_function" "feedback" {
   function_name = "feedback-handler"
@@ -206,9 +252,9 @@ resource "aws_lambda_function" "feedback" {
   }
 }
 
-# -------------------------
-# API Gateway HTTP API
-# -------------------------
+# =========================================================
+# API GATEWAY
+# =========================================================
 
 resource "aws_apigatewayv2_api" "feedback_api" {
   name          = "feedback-api"
@@ -249,11 +295,16 @@ resource "aws_lambda_permission" "apigw_invoke" {
   source_arn    = "${aws_apigatewayv2_api.feedback_api.execution_arn}/*/*"
 }
 
-
-# Outputs
+# =========================================================
+# OUTPUTS
+# =========================================================
 
 output "static_website_endpoint" {
-  value = aws_s3_bucket_website_configuration.static_site.website_endpoint
+  value = "https://${aws_cloudfront_distribution.static_site.domain_name}"
+}
+
+output "cloudfront_domain_name" {
+  value = aws_cloudfront_distribution.static_site.domain_name
 }
 
 output "feedback_api_endpoint" {
