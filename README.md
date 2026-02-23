@@ -11,6 +11,7 @@ Static assets are delivered globally via Amazon CloudFront using Origin Access C
 This project complements a separate infrastructure-managed AWS project built using EC2 and load balancers to contrast serverless and server-based architectures.
 
 
+
 ## Problem Statement
 
 Some applications require:
@@ -21,6 +22,7 @@ Some applications require:
 - Cost efficiency for low-to-medium workloads  
 
 The challenge is designing a system that satisfies these constraints while understanding the tradeoffs introduced by fully managed abstractions.
+
 
 
 ## Architecture
@@ -48,7 +50,9 @@ flowchart TD
 - **Amazon S3** — Durable object storage for static assets
 
 
+
 ## Architecture & Deployment Screenshots
+
 
 ### CloudFront Distribution (Private S3 via OAC)
 
@@ -58,11 +62,13 @@ The S3 bucket remains private and is accessible only through Origin Access Contr
 ![CloudFront Distribution](images/cloudfront-distribution.png)
 
 
+
 ### CloudFront 200 Response (Live Endpoint)
 
 Terminal validation CDN is serving the application successfully over HTTPS.
 
 ![CloudFront 200 Response](images/cloudfront-200-response.png)
+
 
 
 ### Serverless Feedback Form (Frontend)
@@ -72,11 +78,13 @@ Static frontend hosted on S3 and delivered via CloudFront.
 ![Serverless Feedback Form](images/serverless-feedback-form.png)
 
 
+
 ### API Gateway → Lambda Integration
 
 The `POST /feedback` route uses AWS_PROXY integration to invoke the `feedback-handler` Lambda function.
 
 ![API Gateway Lambda Integration](images/api-gateway-lambda-integration.png)
+
 
 
 ### API Validation (400 Response)
@@ -85,6 +93,7 @@ Input validation enforced at the Lambda layer.
 Invalid requests return structured 400 responses.
 
 ![API Validation](images/api-validation-400.png)
+
 
 
 ### Lambda Test (201 Created)
@@ -98,11 +107,14 @@ Direct Lambda test invocation confirming:
 ![Lambda Test Success](images/lambda-test-success-201.png)
 
 
+
 ### DynamoDB Persistence
 
 Successful submissions are stored in the `feedback` table using on-demand billing.
 
 ![DynamoDB feedback table](images/dynamoDB-feedback-table.png)
+
+
 
 ### S3 Private Bucket Configuration
 
@@ -112,11 +124,13 @@ Bucket policy restricts read access to CloudFront distribution only.
 ![S3 Private Bucket](images/s3-private-bucket.png)
 
 
+
 ### S3 Bucket Contents
 
 Static assets (`index.html`, `error.html`) stored in private S3 bucket.
 
 ![S3 Bucket Contents](images/s3-bucket-contents.png)
+
 
 
 ### Terraform Deployment Outputs
@@ -152,6 +166,7 @@ DynamoDB was chosen to:
 
 Tradeoffs include reduced support for complex relational queries and joins, which are acceptable for this application’s access patterns.
 
+
 ### Why CloudFront + Origin Access Control
 
 Instead of exposing an S3 static website endpoint publicly:
@@ -162,6 +177,7 @@ Instead of exposing an S3 static website endpoint publicly:
 - Global edge caching reduces latency  
 
 This improves security posture while maintaining serverless simplicity.
+
 
 
 ## Failure Scenarios & Behavior
@@ -179,6 +195,7 @@ This improves security posture while maintaining serverless simplicity.
 The system favors **availability and simplicity** over low-level infrastructure control.
 
 
+
 ## Observability
 - **CloudWatch Logs** for Lambda execution output
 - **CloudWatch Metrics** for latency, errors, and invocation count
@@ -186,6 +203,7 @@ The system favors **availability and simplicity** over low-level infrastructure 
 - **CloudFront metrics** for cache hit rate and edge performance
 
 Observability is provided through managed AWS tooling without custom monitoring infrastructure.
+
 
 
 ## Tradeoffs & Alternatives
@@ -206,10 +224,13 @@ Observability is provided through managed AWS tooling without custom monitoring 
 
 A separate AWS project explores these concerns using EC2 Auto Scaling and load balancers.
 
+
+
 ## Observability
 - CloudWatch Logs for Lambda execution output
 - CloudWatch Metrics for Lambda errors/latency/invocations
 - API Gateway metrics for request volume and error rates
+
 
 
 ## Repository Structure
@@ -222,6 +243,7 @@ aws-severless-application
 └── README.md
 
 
+
 ## What This Project Demonstrates
 - Secure static asset delivery using CloudFront + Origin Access Control
 - Serverless application design using managed AWS services
@@ -229,6 +251,7 @@ aws-severless-application
 - Automatic scaling under variable traffic
 - Practical reasoning about tradeoffs (cold starts, limits, observability)
 - Terraform-based infrastructure provisioning (IaC)
+
 
 
 ## Deployment
@@ -290,6 +313,8 @@ Always destroy unused infrastructure to avoid AWS charges.
 
 
 Use the API endpoint from terraform output:
+
+
 
 ## Status
 **Feature-complete.**
