@@ -10,7 +10,6 @@ Static assets are delivered globally via Amazon CloudFront using Origin Access C
 
 This project complements a separate infrastructure-managed AWS project built using EC2 and load balancers to contrast serverless and server-based architectures.
 
----
 
 ## Problem Statement
 
@@ -23,7 +22,6 @@ Some applications require:
 
 The challenge is designing a system that satisfies these constraints while understanding the tradeoffs introduced by fully managed abstractions.
 
----
 
 ## Architecture
 
@@ -49,6 +47,7 @@ flowchart TD
 - **DynamoDB** — Fully managed NoSQL datastore with automatic scaling
 - **Amazon S3** — Durable object storage for static assets
 
+
 ## Architecture & Deployment Screenshots
 
 ### CloudFront Distribution (Private S3 via OAC)
@@ -61,7 +60,7 @@ The S3 bucket remains private and is accessible only through Origin Access Contr
 
 ### CloudFront 200 Response (Live Endpoint)
 
-Terminal proof that the CDN is serving the application successfully over HTTPS.
+Terminal validation CDN is serving the application successfully over HTTPS.
 
 ![CloudFront 200 Response](images/cloudfront-200-response.png)
 
@@ -103,8 +102,7 @@ Direct Lambda test invocation confirming:
 
 Successful submissions are stored in the `feedback` table using on-demand billing.
 
-*(If you add the DynamoDB screenshot, reference it here.)*
-
+![DynamoDB feedback table](images/dynamoDB-feedback-table.png)
 
 ### S3 Private Bucket Configuration
 
